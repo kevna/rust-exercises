@@ -1,9 +1,16 @@
 use std::fmt;
 
+fn add(unsigned: &usize, signed: &i32) -> usize {
+    if *signed < 0 {
+        return unsigned.wrapping_sub(signed.abs() as usize)
+    }
+    return unsigned.wrapping_add(*signed as usize)
+}
+
 type Grid = Vec<Vec<bool>>;
 
 pub struct Generation {
-    grid: Grid,
+    pub grid: Grid,
 }
 
 impl Generation {
@@ -20,6 +27,33 @@ impl Generation {
             grid[y][x] = true;
         }
         return Generation::new(grid)
+    }
+
+    pub fn alive(&self, x: &usize, y: &usize) -> bool {
+        return self.grid[*y][*x];
+    }
+
+    pub fn neigbour_counts(&self) -> Vec<Vec<i8>> {
+        let width = self.grid[0].len();
+        let height = self.grid.len();
+        let mut result = vec![vec![0; width]; height];
+        for (y, row) in self.grid.iter().enumerate() {
+            for (x, cell) in row.iter().enumerate() {
+                if *cell {
+                    for i in -1..2 {
+                        for j in -1..2 {
+                            let tmp_y = add(&y, &i);
+                            let tmp_x = add(&x, &j);
+                            if tmp_x < width && tmp_y < height {
+                                result[add(&y, &i)][add(&x, &j)] += 1
+                            }
+                        }
+                    }
+                    result[y][x] -= 1
+                }
+            }
+        }
+        return result;
     }
 }
 
