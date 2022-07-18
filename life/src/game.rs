@@ -1,13 +1,15 @@
 use crate::generation::Generation;
+use crate::rule::Rule;
 use std::{thread, time};
 
 pub struct Game {
     pub current_generation: Generation,
+    rule: Rule,
 }
 
 impl Game {
-    pub fn new(current_generation: Generation) -> Game {
-        return Game{current_generation}
+    pub fn new(current_generation: Generation, rule: Rule) -> Game {
+        return Game{current_generation, rule}
     }
 
     pub fn next_generation(&self) -> Generation {
@@ -16,7 +18,7 @@ impl Game {
 
         for (y, row) in neigbours.iter().enumerate() {
             for (x, cell) in row.iter().enumerate() {
-                if *cell == 3 || (self.current_generation.alive(&x, &y) && *cell == 2) {
+                if self.rule.apply(&self.current_generation.alive(&x, &y), &(*cell as u32)) {
                     grid[y][x] = true;
                 }
             }
@@ -79,7 +81,8 @@ mod tests {
     )]
     fn test_game_next_generation(#[case] grid: Grid, #[case] expected: Grid) {
         let game = Game::new(
-            Generation::new(grid)
+            Generation::new(grid),
+            Rule::new("B3/S23"),
         );
         let gen = game.next_generation();
         assert_eq!(expected, gen.grid);
