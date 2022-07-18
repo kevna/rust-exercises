@@ -47,3 +47,39 @@ impl fmt::Display for Generation {
         return write!(f, "{}", result);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(
+        vec![
+            vec![false, true, false],
+            vec![false, false, true],
+            vec![true, true, true],
+        ],
+        " ▀▄\n▀▀▀\n"
+    )]
+    #[case(
+        vec![
+            vec![false, false, true],
+            vec![true, false, true],
+            vec![false, true, true],
+        ],
+        "▄ █\n ▀▀\n"
+    )]
+    #[case(
+        vec![
+            vec![false, true, false],
+            vec![false, true, false],
+            vec![false, true, false],
+        ],
+        " █ \n ▀ \n"
+    )]
+    fn test_generation_display(#[case] grid: Grid, #[case] expected: &str) {
+        let gen = Generation::new(grid);
+        assert_eq!(expected, gen.to_string());
+    }
+}
