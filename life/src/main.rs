@@ -8,7 +8,7 @@ use rule::Rule;
 
 fn main() {
     let mut game = Game::new(
-        Generation::soup(100),
+        Generation::soup(200, 100),
         Rule::new("B3/S23"),
     );
     game.run();

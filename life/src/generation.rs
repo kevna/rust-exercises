@@ -18,12 +18,12 @@ impl Generation {
         return Generation{grid}
     }
 
-    pub fn soup(size: usize) -> Generation {
-        let mut grid = vec![vec![false; size]; size];
-        let amount = (size*size)/2;
+    pub fn soup(width: usize, height: usize) -> Generation {
+        let mut grid = vec![vec![false; width]; height];
+        let amount = (width*height)/2;
         for _ in 0..amount {
-            let x = fastrand::usize(..size);
-            let y = fastrand::usize(..size);
+            let x = fastrand::usize(..width);
+            let y = fastrand::usize(..height);
             grid[y][x] = true;
         }
         return Generation::new(grid)
@@ -78,7 +78,7 @@ impl fmt::Display for Generation {
             }
             result += "\n";
         }
-        return write!(f, "{}", result);
+        return write!(f, "{}", &result[..result.len()-1]);
     }
 }
 
@@ -94,7 +94,7 @@ mod tests {
             vec![false, false, true],
             vec![true, true, true],
         ],
-        " ▀▄\n▀▀▀\n"
+        " ▀▄\n▀▀▀"
     )]
     #[case(
         vec![
@@ -102,7 +102,7 @@ mod tests {
             vec![true, false, true],
             vec![false, true, true],
         ],
-        "▄ █\n ▀▀\n"
+        "▄ █\n ▀▀"
     )]
     #[case(
         vec![
@@ -110,7 +110,7 @@ mod tests {
             vec![false, true, false],
             vec![false, true, false],
         ],
-        " █ \n ▀ \n"
+        " █ \n ▀ "
     )]
     fn test_generation_display(#[case] grid: Grid, #[case] expected: &str) {
         let gen = Generation::new(grid);
