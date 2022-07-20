@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 fastrand = "1.7.0"
 structopt = "0.3.26"
+phf = { version = "0.10", features = ["macros"] }
 
 [dev-dependencies]
 rstest = "*"

@@ -14,13 +14,15 @@ struct Opt {
     width: usize,
     #[structopt(default_value="100")]
     height: usize,
+    #[structopt(short="r", long="rules", default_value="original")]
+    rules: String,
 }
 
 fn main() {
     let opt = Opt::from_args();
     let mut game = Game::new(
         Generation::soup(opt.width, opt.height),
-        Rule::new("B3/S23"),
+        Rule::new(&opt.rules),
     );
     game.run();
 }

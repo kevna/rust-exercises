@@ -1,4 +1,23 @@
 use std::collections::{HashMap, HashSet};
+use phf::{Map, phf_map};
+
+static NAMED_RULES: Map<&'static str, &'static str> = phf_map! {
+    "seeds" => "B2",
+    "live-free-or-die" => "B2/S0",
+    "life-without-death" => "B3/S012345678",
+    "flock" => "B3/S12",
+    "mazectric" => "B3/S1234",
+    "maze" => "B3/S12345",
+    "original" => "B3/S23",
+    "highlife" => "B36/S23",
+    "move" => "B368/S245",
+    "coagulation" => "B378/S235678",
+    "walled-cities" => "B45678/S2345",
+    "bacteria" => "B34/S456",
+    "longlife" => "B345/S5",
+    "amoeba" => "B357/S1358",
+};
+
 
 pub struct Rule {
     birth: HashSet<u32>,
@@ -7,6 +26,10 @@ pub struct Rule {
 
 impl Rule {
     pub fn new(rulestring: &str) -> Rule {
+        let mut rulestring = rulestring;
+        if NAMED_RULES.contains_key(rulestring) {
+            rulestring = NAMED_RULES[rulestring];
+        }
         const RADIX: u32 = 10;
         let mut accumulator: HashMap<&str,  HashSet<u32>> = HashMap::new();
         for rule in rulestring.split("/") {
@@ -46,6 +69,13 @@ mod tests {
         Rule{
             birth: vec![4, 5, 6, 7, 8].into_iter().collect(),
             survival: vec![2, 3, 4, 5].into_iter().collect(),
+        }
+    )]
+    #[case(
+        "original",
+        Rule{
+            birth: vec![3].into_iter().collect(),
+            survival: vec![2, 3].into_iter().collect(),
         }
     )]
     fn test_rule_new(#[case] rulestring: &str, #[case] expected: Rule) {
