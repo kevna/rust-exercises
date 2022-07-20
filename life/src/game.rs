@@ -1,9 +1,12 @@
 use crate::generation::Generation;
 use crate::rule::Rule;
-use std::{thread, time};
+use std::{
+    thread,
+    time::{Duration, Instant},
+};
 
 pub struct Game {
-    pub current_generation: Generation,
+    current_generation: Generation,
     rule: Rule,
 }
 
@@ -31,16 +34,23 @@ impl Game {
     }
 
     pub fn display_grid(&self) {
-            print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
-            print!("{}", self.current_generation);
+        let display = self.current_generation.to_string();
+        print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
+        print!("{}", display);
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self, delay: &u32) {
+        let delay = Duration::new(0, delay*1_000_000);
+        let mut elapsed = Duration::new(0, 0);
         self.display_grid();
         loop {
-            thread::sleep(time::Duration::new(0, 24_550_000));
+            if delay > elapsed {
+                thread::sleep(delay - elapsed);
+            }
+            let now = Instant::now();
             self.step();
             self.display_grid();
+            elapsed = now.elapsed();
         }
     }
 }

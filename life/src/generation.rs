@@ -18,9 +18,9 @@ impl Generation {
         return Generation{grid}
     }
 
-    pub fn soup(width: usize, height: usize) -> Generation {
+    pub fn soup(width: usize, height: usize, density: f64) -> Generation {
         let mut grid = vec![vec![false; width]; height];
-        let amount = (width*height)/2;
+        let amount = ((width*height) as f64 *density).ceil() as i32;
         for _ in 0..amount {
             let x = fastrand::usize(..width);
             let y = fastrand::usize(..height);
