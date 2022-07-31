@@ -6,7 +6,6 @@ mod rle;
 use structopt::StructOpt;
 use generation::Generation;
 use game::Game;
-use rule::Rule;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name="life", about="A rust implementation of John Conway's Game of Life")]
@@ -48,7 +47,7 @@ fn main() {
     }
     let mut game = Game::new(
         generation,
-        Rule::new(&opt.rules),
+        opt.rules.parse().unwrap(),
     );
     game.run(&opt.delay);
 }

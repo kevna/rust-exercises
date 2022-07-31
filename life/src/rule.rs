@@ -1,5 +1,6 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use phf::{Map, phf_map};
+use std::str::FromStr;
 
 static NAMED_RULES: Map<&'static str, &'static str> = phf_map! {
     "seeds" => "B2",
@@ -18,34 +19,39 @@ static NAMED_RULES: Map<&'static str, &'static str> = phf_map! {
     "amoeba" => "B357/S1358",
 };
 
-
+#[derive(Debug, PartialEq)]
 pub struct Rule {
     birth: HashSet<u32>,
     survival: HashSet<u32>,
 }
 
-impl Rule {
-    pub fn new(rulestring: &str) -> Rule {
-        let mut rulestring = rulestring;
+impl FromStr for Rule {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut rulestring = s;
         if NAMED_RULES.contains_key(rulestring) {
             rulestring = NAMED_RULES[rulestring];
         }
         const RADIX: u32 = 10;
-        let mut accumulator: HashMap<&str,  HashSet<u32>> = HashMap::new();
-        for rule in rulestring.split("/") {
-            let key = &rule[..1];
-            let mut values = HashSet::new();
-            for ch in rule[1..].chars() {
-                values.insert(ch.to_digit(RADIX).unwrap());
+        let mut birth = HashSet::new();
+        let mut survival = HashSet::new();
+        let mut accumulator = &mut survival;
+        for ch in rulestring.chars() {
+            match ch {
+                'B' | '/' => { accumulator = &mut birth; }
+                'S' => { accumulator = &mut survival; }
+                '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'  => {
+                    accumulator.insert(ch.to_digit(RADIX).unwrap());
+                }
+                _ => { return Err("Unrecognised content in rulestring"); }
             }
-            accumulator.insert(key, values);
         }
-        return Rule{
-            birth: accumulator["B"].clone(),
-            survival: accumulator["S"].clone(),
-        };
+        Ok(Rule{birth, survival})
     }
+}
 
+impl Rule {
     pub fn apply(&self, alive: &bool, neigbours: &u32) -> bool {
         return (*alive && self.survival.contains(neigbours)) || (!*alive && self.birth.contains(neigbours));
     }
@@ -74,11 +80,19 @@ mod tests {
     #[rstest]
     #[case("B3/S23", classic())]
     #[case("original", classic())] // lookup a named rule
+    #[case("23/3", classic())] // legacy S/B rule notation without "B" and "S" labels
     #[case(
         "B45678/S2345",
         Rule{
             birth: set![4, 5, 6, 7, 8],
             survival: set![2, 3, 4, 5],
+        }
+    )]
+    #[case(
+        "B2", // Seeds rule has no survival section
+        Rule{
+            birth: set![2],
+            survival: HashSet::new(),
         }
     )]
     #[case(
@@ -88,10 +102,17 @@ mod tests {
             survival: set![0],
         }
     )]
-    fn test_rule_new(#[case] rulestring: &str, #[case] expected: Rule) {
-        let rule = Rule::new(rulestring);
-        assert_eq!(expected.birth, rule.birth);
-        assert_eq!(expected.survival, rule.survival);
+    fn test_rule_from_str_ok(#[case] rulestring: &str, #[case] expected: Rule) {
+        let rule = rulestring.parse();
+        assert_eq!(Ok(expected), rule);
+    }
+
+    #[rstest]
+    #[case("B3/S23V", "Unrecognised content in rulestring")]
+    #[case("B3\\S23", "Unrecognised content in rulestring")]
+    fn test_rule_from_str_err(#[case] rulestring: &str, #[case] expected: &str) {
+        let rule = Rule::from_str(rulestring);
+        assert_eq!(Err(expected), rule);
     }
 
     #[rstest]
@@ -103,7 +124,7 @@ mod tests {
     #[case(true, 3, true)]
     #[case(true, 4, false)]
     fn test_rule_apply(#[case] alive: bool, #[case] neigbours: u32, #[case] expected: bool) {
-        let rule = Rule::new("B3/S23");
+        let rule: Rule = "B3/S23".parse().unwrap();
         let actual = rule.apply(&alive, &neigbours);
         assert_eq!(expected, actual);
     }

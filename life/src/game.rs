@@ -92,7 +92,7 @@ mod tests {
     fn test_game_next_generation(#[case] grid: Grid, #[case] expected: Grid) {
         let game = Game::new(
             Generation::new(grid),
-            Rule::new("B3/S23"),
+            "B3/S23".parse().unwrap(),
         );
         let gen = game.next_generation();
         assert_eq!(expected, gen.grid);
