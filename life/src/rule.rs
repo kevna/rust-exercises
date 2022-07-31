@@ -56,26 +56,36 @@ mod tests {
     use super::*;
     use rstest::rstest;
 
-    #[rstest]
-    #[case(
-        "B3/S23",
+    macro_rules! set {
+        ( $( $x:expr ),* ) => {{ // Match zero or more comma delimited items
+            let mut temp_set = HashSet::new();
+            $( temp_set.insert($x); )* // Do this for eatch matched item
+            temp_set
+        }};
+    }
+
+    fn classic() -> Rule {
         Rule{
-            birth: vec![3].into_iter().collect(),
-            survival: vec![2, 3].into_iter().collect(),
+            birth: set![3],
+            survival: set![2, 3],
         }
-    )]
+    }
+
+    #[rstest]
+    #[case("B3/S23", classic())]
+    #[case("original", classic())] // lookup a named rule
     #[case(
         "B45678/S2345",
         Rule{
-            birth: vec![4, 5, 6, 7, 8].into_iter().collect(),
-            survival: vec![2, 3, 4, 5].into_iter().collect(),
+            birth: set![4, 5, 6, 7, 8],
+            survival: set![2, 3, 4, 5],
         }
     )]
     #[case(
-        "original",
+        "B2/S0000",
         Rule{
-            birth: vec![3].into_iter().collect(),
-            survival: vec![2, 3].into_iter().collect(),
+            birth: set![2],
+            survival: set![0],
         }
     )]
     fn test_rule_new(#[case] rulestring: &str, #[case] expected: Rule) {
@@ -95,6 +105,6 @@ mod tests {
     fn test_rule_apply(#[case] alive: bool, #[case] neigbours: u32, #[case] expected: bool) {
         let rule = Rule::new("B3/S23");
         let actual = rule.apply(&alive, &neigbours);
-        assert_eq!(expected, actual)
+        assert_eq!(expected, actual);
     }
 }
