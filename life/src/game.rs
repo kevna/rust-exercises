@@ -11,8 +11,9 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(current_generation: Generation, rule: Rule) -> Game {
-        return Game{current_generation, rule}
+    pub fn new(current_generation: Generation, rule: Option<Rule>) -> Game {
+        let rule = rule.unwrap_or(Rule::default());
+        Game{current_generation, rule}
     }
 
     pub fn next_generation(&self) -> Generation {
@@ -92,7 +93,7 @@ mod tests {
     fn test_game_next_generation(#[case] grid: Grid, #[case] expected: Grid) {
         let game = Game::new(
             Generation::new(grid),
-            "B3/S23".parse().unwrap(),
+            None,
         );
         let gen = game.next_generation();
         assert_eq!(expected, gen.grid);

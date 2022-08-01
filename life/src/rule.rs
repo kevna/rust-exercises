@@ -52,6 +52,10 @@ impl FromStr for Rule {
 }
 
 impl Rule {
+    pub fn default() -> Rule {
+        "original".parse().unwrap()
+    }
+
     pub fn apply(&self, alive: &bool, neigbours: &u32) -> bool {
         return (*alive && self.survival.contains(neigbours)) || (!*alive && self.birth.contains(neigbours));
     }

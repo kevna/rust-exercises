@@ -6,15 +6,16 @@ mod rle;
 use structopt::StructOpt;
 use generation::Generation;
 use game::Game;
+use rule::Rule;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name="life", about="A rust implementation of John Conway's Game of Life")]
 struct Opt {
     #[structopt(subcommand)]
     cmd: Subcommand,
-    #[structopt(short="r", long="rules", default_value="original")]
-    rules: String,
-    #[structopt(long="delay", default_value="24", about="Delay between generations (in miliseconds)")]
+    #[structopt(short="r", long="rules", global=true)]
+    rule: Option<Rule>,
+    #[structopt(long="delay", default_value="16", about="Delay between generations (in miliseconds)", global=true)]
     delay: u32,
 }
 
@@ -36,6 +37,7 @@ enum Subcommand {
 fn main() {
     let opt = Opt::from_args();
     let generation: Generation;
+    let mut rule: Option<Rule> = None;
     match opt.cmd {
         Subcommand::Soup {width, height, density} => {
             generation = Generation::soup(width, height, density);
@@ -45,9 +47,12 @@ fn main() {
             generation = Generation::new(file);
         }
     }
+    if let Some(r) = opt.rule {
+        rule = Some(r);
+    }
     let mut game = Game::new(
         generation,
-        opt.rules.parse().unwrap(),
+        rule,
     );
     game.run(&opt.delay);
 }
