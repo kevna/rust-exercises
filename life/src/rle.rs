@@ -1,5 +1,6 @@
 use std::fs;
 use std::num::ParseIntError;
+use crate::rule::Rule;
 
 type Grid = Vec<Vec<bool>>;
 
@@ -7,7 +8,7 @@ type Grid = Vec<Vec<bool>>;
 struct Header {
     width: usize,
     height: usize,
-    rule: Option<String>,
+    rule: Option<Rule>,
 }
 
 fn parse_header(header: &str) -> Result<Header, ParseIntError> {
@@ -26,7 +27,7 @@ fn parse_header(header: &str) -> Result<Header, ParseIntError> {
                 result.height = value.trim().parse()?;
             }
             "rule" => {
-                result.rule = Some(value.trim().to_owned());
+                result.rule = value.trim().parse().ok();
             }
             _ => {}
         }
@@ -34,7 +35,7 @@ fn parse_header(header: &str) -> Result<Header, ParseIntError> {
     return Ok(result);
 }
 
-fn parse_grid(header: Header, contents: &str) -> Result<Grid, ParseIntError> {
+fn parse_grid(header: &Header, contents: &str) -> Result<Grid, ParseIntError> {
     let mut grid = vec![vec![false; header.width]; header.height];
     let mut x = 0;
     let mut y = 0;
@@ -73,16 +74,17 @@ fn parse_grid(header: Header, contents: &str) -> Result<Grid, ParseIntError> {
     return Ok(grid);
 }
 
-pub fn parse_file(contents: &str) -> Result<Grid, ParseIntError> {
+pub fn parse_file(contents: &str) -> Result<(Grid, Option<Rule>), ParseIntError> {
     let (header, contents) = contents.split_once("\n").unwrap();
-    let dimension = parse_header(&header)?;
-    return Ok(parse_grid(dimension, &contents)?);
+    let header = parse_header(&header)?;
+    let grid = parse_grid(&header, &contents)?;
+    Ok((grid, header.rule))
 }
 
-pub fn read_file(filename: &str) -> Result<Grid, ParseIntError> {
+pub fn read_file(filename: &str) -> Result<(Grid, Option<Rule>), ParseIntError> {
     let contents = fs::read_to_string(filename)
         .expect("Something went wrong reading the file");
-    return Ok(parse_file(&contents)?);
+    Ok(parse_file(&contents)?)
 }
 
 #[cfg(test)]
@@ -92,7 +94,7 @@ mod tests {
 
     #[rstest]
     #[case("x = 20, y = 10", Header{width: 20, height: 10, rule: None})]
-    #[case("x = 20, y = 10, rule = B3/S23", Header{width: 20, height: 10, rule: Some("B3/S23".to_owned())})]
+    #[case("x = 20, y = 10, rule = B3/S23", Header{width: 20, height: 10, rule: "B3/S23".parse().ok()})]
     fn test_parse_headers(#[case] header: &str, #[case] expected: Header) {
         let actual = parse_header(header).unwrap();
         assert_eq!(expected, actual);
@@ -108,27 +110,39 @@ mod tests {
             vec![true, true, true],
         ]
     )]
-    fn test_parse_grid(#[case] dimension: Header, #[case] contents: &str, #[case] expected: Grid) {
-        let actual = parse_grid(dimension, contents).unwrap();
+    fn test_parse_grid(#[case] header: Header, #[case] contents: &str, #[case] expected: Grid) {
+        let actual = parse_grid(&header, contents).unwrap();
         assert_eq!(expected, actual);
     }
 
     #[rstest]
-    #[case("x = 36, y = 9, rule = B3/S23
-24bo$22bobo$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o$2o8bo3bob2o4b
-obo$10bo5bo7bo$11bo3bo$12b2o!
-", vec![
-        vec![false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,  true, false, false, false, false, false, false, false, false, false, false, false],
-        vec![false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,  true, false,  true, false, false, false, false, false, false, false, false, false, false, false],
-        vec![false, false, false, false, false, false, false, false, false, false, false, false,  true,  true, false, false, false, false, false, false,  true,  true, false, false, false, false, false, false, false, false, false, false, false, false,  true,  true],
-        vec![false, false, false, false, false, false, false, false, false, false, false,  true, false, false, false,  true, false, false, false, false,  true,  true, false, false, false, false, false, false, false, false, false, false, false, false,  true,  true],
-        vec![ true,  true, false, false, false, false, false, false, false, false,  true, false, false, false, false, false,  true, false, false, false,  true,  true, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
-        vec![ true,  true, false, false, false, false, false, false, false, false,  true, false, false, false,  true, false,  true,  true, false, false, false, false,  true, false,  true, false, false, false, false, false, false, false, false, false, false, false],
-        vec![false, false, false, false, false, false, false, false, false, false,  true, false, false, false, false, false,  true, false, false, false, false, false, false, false,  true, false, false, false, false, false, false, false, false, false, false, false],
-        vec![false, false, false, false, false, false, false, false, false, false, false,  true, false, false, false,  true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
-        vec![false, false, false, false, false, false, false, false, false, false, false, false,  true,  true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
-    ])]
-    fn test_parse_file(#[case] contents: &str, #[case] expected: Grid) {
+    #[case(
+        "x = 3, y = 3, rule = 23/3
+        bo$2bo$3o!",
+        (vec![
+            vec![false, true, false],
+            vec![false, false, true],
+            vec![true, true, true],
+        ], "B3/S23".parse().ok())
+    )]
+    #[case(
+        "x = 36, y = 9
+        24bo$22bobo$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o$2o8bo3bob2o4b
+        obo$10bo5bo7bo$11bo3bo$12b2o!
+        ",
+        (vec![
+            vec![false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,  true, false, false, false, false, false, false, false, false, false, false, false],
+            vec![false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,  true, false,  true, false, false, false, false, false, false, false, false, false, false, false],
+            vec![false, false, false, false, false, false, false, false, false, false, false, false,  true,  true, false, false, false, false, false, false,  true,  true, false, false, false, false, false, false, false, false, false, false, false, false,  true,  true],
+            vec![false, false, false, false, false, false, false, false, false, false, false,  true, false, false, false,  true, false, false, false, false,  true,  true, false, false, false, false, false, false, false, false, false, false, false, false,  true,  true],
+            vec![ true,  true, false, false, false, false, false, false, false, false,  true, false, false, false, false, false,  true, false, false, false,  true,  true, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
+            vec![ true,  true, false, false, false, false, false, false, false, false,  true, false, false, false,  true, false,  true,  true, false, false, false, false,  true, false,  true, false, false, false, false, false, false, false, false, false, false, false],
+            vec![false, false, false, false, false, false, false, false, false, false,  true, false, false, false, false, false,  true, false, false, false, false, false, false, false,  true, false, false, false, false, false, false, false, false, false, false, false],
+            vec![false, false, false, false, false, false, false, false, false, false, false,  true, false, false, false,  true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
+            vec![false, false, false, false, false, false, false, false, false, false, false, false,  true,  true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
+        ], None)
+    )]
+    fn test_parse_file(#[case] contents: &str, #[case] expected: (Grid, Option<Rule>)) {
         let actual = parse_file(contents).unwrap();
         assert_eq!(expected, actual);
     }

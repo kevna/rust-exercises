@@ -43,8 +43,9 @@ fn main() {
             generation = Generation::soup(width, height, density);
         }
         Subcommand::File {filename} => {
-            let file = rle::read_file(&filename).unwrap();
-            generation = Generation::new(file);
+            let (grid, r) = rle::read_file(&filename).unwrap();
+            generation = Generation::new(grid);
+            rule = r
         }
     }
     if let Some(r) = opt.rule {
