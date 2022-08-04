@@ -8,16 +8,18 @@ use std::{
 pub struct Game {
     current_generation: Generation,
     rule: Rule,
+    neighbourhood: Vec<(i32, i32)>,
 }
 
 impl Game {
     pub fn new(current_generation: Generation, rule: Option<Rule>) -> Game {
         let rule = rule.unwrap_or(Rule::default());
-        Game{current_generation, rule}
+        let neighbourhood = rule.neighbour_pattern.generate(1);
+        Game{current_generation, rule, neighbourhood}
     }
 
     pub fn next_generation(&self) -> Generation {
-        let neigbours = self.current_generation.neigbour_counts();
+        let neigbours = self.current_generation.neigbour_counts(&self.neighbourhood);
         let mut grid = vec![vec![false; neigbours[0].len()]; neigbours.len()];
 
         for (y, row) in neigbours.iter().enumerate() {

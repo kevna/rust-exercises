@@ -2,6 +2,9 @@ use std::collections::HashSet;
 use phf::{Map, phf_map};
 use std::str::FromStr;
 
+pub mod neighbourhood;
+use neighbourhood::Pattern;
+
 static NAMED_RULES: Map<&'static str, &'static str> = phf_map! {
     "seeds" => "B2",
     "live-free-or-die" => "B2/S0",
@@ -17,12 +20,14 @@ static NAMED_RULES: Map<&'static str, &'static str> = phf_map! {
     "bacteria" => "B34/S456",
     "longlife" => "B345/S5",
     "amoeba" => "B357/S1358",
+    "folly" => "B1/S1V", // Named for u/FollyAdvice, as discovered at redd.it/6yenth
 };
 
 #[derive(Debug, PartialEq)]
 pub struct Rule {
     birth: HashSet<u32>,
     survival: HashSet<u32>,
+    pub neighbour_pattern: Pattern,
 }
 
 impl FromStr for Rule {
@@ -37,6 +42,7 @@ impl FromStr for Rule {
         let mut birth = HashSet::new();
         let mut survival = HashSet::new();
         let mut accumulator = &mut survival;
+        let mut neighbour_pattern = Pattern::Moore;
         for ch in rulestring.chars() {
             match ch {
                 'B' | '/' => { accumulator = &mut birth; }
@@ -44,10 +50,13 @@ impl FromStr for Rule {
                 '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'  => {
                     accumulator.insert(ch.to_digit(RADIX).unwrap());
                 }
+                'V' => {
+                    neighbour_pattern = Pattern::VonNeumann;
+                }
                 _ => { return Err("Unrecognised content in rulestring"); }
             }
         }
-        Ok(Rule{birth, survival})
+        Ok(Rule{birth, survival, neighbour_pattern})
     }
 }
 
@@ -65,6 +74,7 @@ impl Rule {
 mod tests {
     use super::*;
     use rstest::rstest;
+    use neighbourhood::Pattern::{Moore, VonNeumann};
 
     macro_rules! set {
         ( $( $x:expr ),* ) => {{ // Match zero or more comma delimited items
@@ -78,6 +88,7 @@ mod tests {
         Rule{
             birth: set![3],
             survival: set![2, 3],
+            neighbour_pattern: Moore,
         }
     }
 
@@ -90,6 +101,7 @@ mod tests {
         Rule{
             birth: set![4, 5, 6, 7, 8],
             survival: set![2, 3, 4, 5],
+            neighbour_pattern: Moore,
         }
     )]
     #[case(
@@ -97,6 +109,7 @@ mod tests {
         Rule{
             birth: set![2],
             survival: HashSet::new(),
+            neighbour_pattern: Moore,
         }
     )]
     #[case(
@@ -104,6 +117,15 @@ mod tests {
         Rule{
             birth: set![2],
             survival: set![0],
+            neighbour_pattern: Moore,
+        }
+    )]
+    #[case(
+        "B3/S23V",
+        Rule{
+            birth: set![3],
+            survival: set![2, 3],
+            neighbour_pattern: VonNeumann,
         }
     )]
     fn test_rule_from_str_ok(#[case] rulestring: &str, #[case] expected: Rule) {
@@ -112,7 +134,6 @@ mod tests {
     }
 
     #[rstest]
-    #[case("B3/S23V", "Unrecognised content in rulestring")]
     #[case("B3\\S23", "Unrecognised content in rulestring")]
     fn test_rule_from_str_err(#[case] rulestring: &str, #[case] expected: &str) {
         let rule = Rule::from_str(rulestring);

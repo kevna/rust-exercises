@@ -33,23 +33,20 @@ impl Generation {
         return self.grid[*y][*x];
     }
 
-    pub fn neigbour_counts(&self) -> Vec<Vec<i8>> {
+    pub fn neigbour_counts(&self, neighbourhood: &Vec<(i32, i32)>) -> Vec<Vec<i8>> {
         let width = self.grid[0].len();
         let height = self.grid.len();
         let mut result = vec![vec![0; width]; height];
         for (y, row) in self.grid.iter().enumerate() {
             for (x, cell) in row.iter().enumerate() {
                 if *cell {
-                    for i in -1..2 {
-                        for j in -1..2 {
-                            let tmp_y = add(&y, &i);
-                            let tmp_x = add(&x, &j);
-                            if tmp_x < width && tmp_y < height {
-                                result[add(&y, &i)][add(&x, &j)] += 1
-                            }
+                    for (i, j) in neighbourhood {
+                        let tmp_y = add(&y, &j);
+                        let tmp_x = add(&x, &i);
+                        if tmp_x < width && tmp_y < height {
+                            result[tmp_y][tmp_x] += 1
                         }
                     }
-                    result[y][x] -= 1
                 }
             }
         }
